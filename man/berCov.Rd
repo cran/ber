@@ -1,14 +1,14 @@
-\name{ber}
-\alias{ber}
+\name{berCov}
+\alias{berCov}
 \title{
-Batch Effects Removal
+Batch Effects Removal using Covariates
 }
 \description{
-The function ber removes batch effects from (microarray) data. This function uses information about the batches and 
-the expression levels in the data.
+The function berCov removes batch effects from (microarray) data. This function uses information about the batches, 
+the expression levels in the data and other covariates of interest.
 }
 \usage{
-ber(Y, b)
+berCov(Y, b, covariates, stage2_cov = FALSE)
 }
 \arguments{
   \item{Y}{
@@ -18,6 +18,14 @@ In the case of gene expression data, columns correspond to genes and rows to sam
   \item{b}{
 A vector of class factor with the element in position \eqn{i} (\eqn{i=1,\ldots,n}) representing the batch
 from which observation \eqn{i} belongs to.
+}
+  \item{covariates}{
+An object of class data.frame where each column corresponds to a quantitative variable (of class numeric) or 
+a qualitative variable (of class factor)
+}
+  \item{stage2_cov}{
+logical indicating if the covariates have to be considered only in handling the location effects (stage2_cov = F) or 
+also for the scale effects (stage2_cov = T).
 }
 }
 \value{
@@ -30,9 +38,8 @@ effects in high dimensional data experiments.
 \author{
 Marco Giordan, \email{giordan@stat.unipd.it}
 }
-
 \seealso{
-\code{\link{berCov}}
+\code{\link{ber}}
 }
 \examples{
 library(golubEsets)
@@ -40,7 +47,9 @@ library(vsn)
 data(Golub_Merge)
 E<-exprs(vsn2(Golub_Merge))
 batch<-Golub_Merge$Source
-Eadj<-ber(t(E),batch)
+BMPB<-Golub_Merge$BM.PB
+BMPB<-data.frame(BMPB)
+Eadj<-berCov(t(E),batch,BMPB)
 }
 \keyword{model & regression}
 
