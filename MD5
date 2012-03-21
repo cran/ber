@@ -1,0 +1,14 @@
+635c8e8a969cd7dfa21b5d50103900b0 *DESCRIPTION
+df390c53434517b304ac5db487184641 *NAMESPACE
+6aa0c5c5ec431a0e7fec0dbc7ee8207c *R/ber.r
+185dc3dc60765b18d6bb0488ee87c801 *R/ber_bg.r
+89e812db53071208901e90df30fb9e4b *R/combat_np.r
+6520ad60ec2e08a583c3d3e71953e636 *R/combat_p.r
+ed3b8ab1d24559d6ad19b5f667cf0c57 *R/mean_centering.r
+2dd699af4b7e9da94f866703ea47a857 *R/standardization.r
+41c0e16019364b343569a5a9f0a7f4af *man/ber.Rd
+011519dfde3806632ed98713f75503c1 *man/ber_bg.Rd
+ee03a3e51a2b1cbd20ddbc5086df5333 *man/combat_np.Rd
+e4338abbd48c7eb29b5c6b981787de54 *man/combat_p.Rd
+969f910b7fbe37d1c890872d5062d5e1 *man/mean_centering.Rd
+439bbbbeeefca2a7c4cc40258ee789ce *man/standardization.Rd

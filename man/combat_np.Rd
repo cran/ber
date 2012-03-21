@@ -1,11 +1,11 @@
-\name{ber}
-\alias{ber}
-\title{Batch Effects Removal}
+\name{combat_np}
+\alias{combat_np}
+\title{non-parametric combat}
 \description{
-Batch effects are removed using a two-stage regression approach.
+Batch effects are removed using a non-parametric empirical Bayes approach, as described in Johnson et al. 2007.
 }
 \usage{
-ber(Y, b, covariates = NULL, stage2=FALSE)
+combat_np(Y, b, covariates = NULL)
 }
 \arguments{
 \item{Y}{A matrix with \eqn{n} rows and \eqn{g} columns, where \eqn{n} is the number of objects and \eqn{g}
@@ -15,21 +15,22 @@ to genes (probe sets) and rows to samples.}
 the batch from which observation \eqn{i} belongs to.}
 \item{covariates}{An object of class data.frame where each column corresponds to a quantitative
 variable (of class numeric) or a qualitative variable (of class factor).}
-\item{stage2}{A logical value indicating if the covariates have to be considered only in handling the
-location effects (stage2 = F) or also for the scale effects (stage2 = T).}
 }
-\details{In this implementation NA values are not allowed.}
+\details{In this implementation pre-processing of the data is obtained through Moore-Penrose pseudo inverse.  
+Therefore the final matrix of adjusted data can be different from that obtained through the 
+original ComBat algorithm (see sva package). NA values are not allowed.}
 \value{A matrix of adjusted data with \eqn{n} rows and \eqn{g} columns.}
-\references{M. Giordan. A two-stage procedure for the removal of batch effects in microarray studies}
+\references{Johnson et al. 2007 \url{http://www.ncbi.nlm.nih.gov/pubmed/16632515}}
 \author{Marco Giordan}
-\seealso{\code{\link{ber_bg}}, \code{\link{combat_np}}, \code{\link{combat_p}},\code{\link{mean_centering}}, \code{\link{standardization}}}
+\seealso{\code{\link{ber}}, \code{\link{ber_bg}}, \code{\link{combat_p}}, \code{\link{mean_centering}}, \code{\link{standardization}}}
 \examples{
 library(golubEsets)
 library(vsn)
 data(Golub_Merge)
 E<-exprs(vsn2(Golub_Merge))
+E<-E[1:100,]
 batch<-Golub_Merge$Source
 BMPB<-Golub_Merge$BM.PB
 BMPB<-data.frame(BMPB)
-Eadj<-ber(t(E),batch,BMPB)
+Eadj<-combat_np(t(E),batch,BMPB)
 }
