@@ -18,10 +18,7 @@ the batch from which observation \eqn{i} belongs to.}
 \author{Marco Giordan}
 \seealso{\code{\link{ber}}, \code{\link{ber_bg}}, \code{\link{combat_np}}, \code{\link{combat_p}},  \code{\link{standardization}}}
 \examples{
-library(golubEsets)
-library(vsn)
-data(Golub_Merge)
-E<-exprs(vsn2(Golub_Merge))
-batch<-Golub_Merge$Source
-Eadj<-mean_centering(t(E),batch)
+Y<-matrix(rnorm(6000),nrow=12)
+batch<-rep(gl(2,3,labels=c("Batch1","Batch2")),2)
+YEadj<-mean_centering(Y,batch)
 }

@@ -1,11 +1,11 @@
 Package: ber
 Type: Package
 Title: Batch Effects Removal
-Version: 3.0
-Date: 2012-21-03
+Version: 4.0
+Date: 2013-12-03
 Author: Marco Giordan
-Maintainer: <giordan@stat.unipd.it>
-Suggests: MASS, golubEsets, vsn
+Maintainer: Marco Giordan <marco.giordan@fmach.it>
+Depends: MASS
 Description: The functions in this package remove batch effects from
         microarrary normalized data. The expression levels of the genes
         are represented in a matrix where rows correspond to
@@ -16,6 +16,7 @@ Description: The functions in this package remove batch effects from
         effects and adjust the data.
 License: GPL-2
 LazyLoad: yes
-Packaged: 2012-03-21 20:29:15 UTC; marco
+Packaged: 2013-03-12 07:44:58 UTC; marco
+NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2012-03-22 08:37:55
+Date/Publication: 2013-03-12 10:01:16

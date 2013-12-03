@@ -17,20 +17,16 @@ the batch from which observation \eqn{i} belongs to.}
 variable (of class numeric) or a qualitative variable (of class factor).}
 }
 \details{In this implementation pre-processing of the data is obtained through Moore-Penrose pseudo inverse.  
-Therefore the final matrix of adjusted data can be different from that obtained through the 
-original ComBat algorithm (see sva package). NA values are not allowed.}
+The final matrix of adjusted data can be different from that obtained through the 
+original ComBat algorithm (see sva package) due to small differences in the optimization peocedure. NA values are not allowed.}
 \value{A matrix of adjusted data with \eqn{n} rows and \eqn{g} columns.}
 \references{Johnson et al. 2007 \url{http://www.ncbi.nlm.nih.gov/pubmed/16632515}}
 \author{Marco Giordan}
 \seealso{\code{\link{ber}}, \code{\link{ber_bg}}, \code{\link{combat_p}}, \code{\link{mean_centering}}, \code{\link{standardization}}}
 \examples{
-library(golubEsets)
-library(vsn)
-data(Golub_Merge)
-E<-exprs(vsn2(Golub_Merge))
-E<-E[1:100,]
-batch<-Golub_Merge$Source
-BMPB<-Golub_Merge$BM.PB
-BMPB<-data.frame(BMPB)
-Eadj<-combat_np(t(E),batch,BMPB)
+Y<-matrix(rnorm(1200),nrow=12)
+class<-gl(2,6,labels=c("Control","Treat"))
+class<-data.frame(class)
+batch<-rep(gl(2,3,labels=c("Batch1","Batch2")),2)
+YEadj<-combat_np(Y,batch,class)
 }

@@ -1,4 +1,4 @@
-ber_bg<-function(Y, b, covariates=NULL,stage2=FALSE,partial=TRUE,nSim=150){
+ber_bg<-function(Y, b, covariates=NULL,partial=TRUE,nSim=150){
 
 ################################################################################
 
@@ -47,7 +47,7 @@ if(is.null(covariates) & partial==TRUE)
 #######################################    
 # B bagging estimator     
 
-B <- matrix(rep(0,(m+1)*g), ncol = g, byrow = TRUE)
+B <- matrix(rep(0,m*g), ncol = g, byrow = TRUE)
 
     for(i in 1:nSim)
     {
@@ -55,7 +55,7 @@ B <- matrix(rep(0,(m+1)*g), ncol = g, byrow = TRUE)
     Y_bag <- Y[sample_labels,]
     b_bag <- b[sample_labels]
              
-    X_bag <- cbind(rep(1, n), model.matrix(~-1 + b_bag, b_bag))
+    X_bag <- model.matrix(~b_bag-1)
     Xinv_bag <- ginv(X_bag)
     B_bag <- Xinv_bag %*% Y_bag
      
@@ -66,22 +66,24 @@ B <- matrix(rep(0,(m+1)*g), ncol = g, byrow = TRUE)
 #####################################
 # data adjustment
 
-    X <- cbind(rep(1, n), model.matrix(~-1 + b, b))
+    X <- model.matrix(~b-1)
     Xinv <- ginv(X)
     
-    e_1 <- c(1, rep(0, m))                                                      
-    e_1_matrix <- matrix(rep(e_1, n), ncol = m + 1, byrow = TRUE)               
+    XB_hat<-X %*% B
+    genes_mean <-  apply(XB_hat,2,mean)     
+    genes_mean_matrix <- matrix(rep(genes_mean, n), byrow = TRUE,nrow = n)
 
-    res <- Y - X %*% B
-    res_squared <- res^2
-    Bdouble <- Xinv %*% res_squared                                             # Bdouble estimator
-    genes_var <- Bdouble[1,]
-    genes_var_matrix <- matrix(rep(genes_var, m), byrow = TRUE, 
-        nrow = m)
-    ones <- matrix(rep(1, m * g), nrow = m)
-    ScaleFactors <- ones/sqrt(ones + (Bdouble[2:(m + 1),]/genes_var_matrix))
-    adjYdouble <- ScaleFactors[b,] * res
-    adjYdouble <- adjYdouble + e_1_matrix %*% B
+    adjY <- Y - XB_hat
+    res_squared <- adjY^2
+    
+    Bdouble <- Xinv %*% res_squared                                             
+    XD_hat<-X%*%Bdouble
+    genes_var <-  apply(XD_hat,2,mean)     
+    genes_var_matrix <- matrix(rep(genes_var, n), byrow = TRUE,nrow = n)
+    ScaleFactors <- sqrt(genes_var_matrix/(XD_hat))
+    adjYdouble <- ScaleFactors * adjY
+    adjYdouble <- adjYdouble +  genes_mean_matrix
+    
     colnames(adjYdouble)<-cnames
     rownames(adjYdouble)<-rnames
     return(adjYdouble)
@@ -99,8 +101,8 @@ if(is.null(covariates) & partial==FALSE)
 #######################################    
 # bagging estimators     
 
-B <- matrix(rep(0,(m+1)*g), ncol = g, byrow = TRUE)
-Bdouble <- matrix(rep(0,(m+1)*g), ncol = g, byrow = TRUE)
+B <- matrix(rep(0,m*g), ncol = g, byrow = TRUE)
+Bdouble <- matrix(rep(0,m*g), ncol = g, byrow = TRUE)
 
     for(i in 1:nSim)
     {
@@ -108,7 +110,7 @@ Bdouble <- matrix(rep(0,(m+1)*g), ncol = g, byrow = TRUE)
     Y_bag <- Y[sample_labels,]
     b_bag <- b[sample_labels]
              
-    X_bag <- cbind(rep(1, n), model.matrix(~-1 + b_bag, b_bag))
+    X_bag <- model.matrix(~b_bag-1)
     Xinv_bag <- ginv(X_bag)
     B_bag <- Xinv_bag %*% Y_bag
     
@@ -126,21 +128,22 @@ Bdouble <- matrix(rep(0,(m+1)*g), ncol = g, byrow = TRUE)
 #####################################
 # data adjustment
 
-    X <- cbind(rep(1, n), model.matrix(~-1 + b, b))
+    X <- model.matrix(~b-1)
     Xinv <- ginv(X)
+        
+    XB_hat<-X %*% B
+    genes_mean <-  apply(XB_hat,2,mean)     
+    genes_mean_matrix <- matrix(rep(genes_mean, n), byrow = TRUE,nrow = n) 
     
-    res <- Y - X %*% B
-    
-    e_1 <- c(1, rep(0, m))                                                      
-    e_1_matrix <- matrix(rep(e_1, n), ncol = m + 1, byrow = TRUE)               
+    adjY <- Y - XB_hat             
 
-    genes_var <- Bdouble[1,]
-    genes_var_matrix <- matrix(rep(genes_var, m), byrow = TRUE, 
-        nrow = m)
-    ones <- matrix(rep(1, m * g), nrow = m)
-    ScaleFactors <- ones/sqrt(ones + (Bdouble[2:(m + 1),]/genes_var_matrix))
-    adjYdouble <- ScaleFactors[b,] * res
-    adjYdouble <- adjYdouble + e_1_matrix %*% B
+    XD_hat<-X%*%Bdouble
+    genes_var <-  apply(XD_hat,2,mean)     
+    genes_var_matrix <- matrix(rep(genes_var, n), byrow = TRUE,nrow = n)
+    ScaleFactors <- sqrt(genes_var_matrix/(XD_hat))
+    adjYdouble <- ScaleFactors * adjY
+    adjYdouble <- adjYdouble +  genes_mean_matrix
+    
     colnames(adjYdouble)<-cnames
     rownames(adjYdouble)<-rnames
     return(adjYdouble)
@@ -156,20 +159,18 @@ if(!is.null(covariates) & partial==TRUE)
     n <- dim(Y)[1]
     g <- dim(Y)[2]
     m1 <- nlevels(b)
-    X1 <- cbind(rep(1, n), model.matrix(~-1 + b, b))
+    X1 <- model.matrix(~b-1)
     colnames(covariates) <- paste("col",1:ncol(covariates),sep = "")
     fmla <- as.formula(paste("~", paste(colnames(covariates),collapse = "+")))
     X2 <- model.matrix(fmla, covariates)
     X2 <- as.matrix(X2[,-1])
     X <- cbind(X1, X2)
     m2 <- dim(X2)[2]
-    m2double <- m2
-    if(stage2==F){m2double <- 0}
     
 #####################################
 # bagging estimators
 
-    B_Aggregating<-matrix(rep(0,g*(m1+m2+1)),ncol=g,nrow=m1+m2+1)
+    B_Aggregating<-matrix(rep(0,g*(m1+m2)),ncol=g,nrow=m1+m2)
    
 for(i in 1:nSim){
     sample_labels <-sample(1:n,n,replace=T)
@@ -178,81 +179,44 @@ for(i in 1:nSim){
     covariates_bag <- covariates[sample_labels,]
     covariates_bag <- as.data.frame(covariates_bag)
            
-    X1_bag <- cbind(rep(1, n), model.matrix(~-1 + b_bag,b_bag))
+    X1_bag <- model.matrix(~b_bag-1)
     colnames(covariates_bag) <- paste("col",1:ncol(covariates_bag),sep = "")
     fmla <- as.formula(paste("~",paste(colnames(covariates_bag),collapse = "+")))
     X2_bag <- model.matrix(fmla,covariates_bag)
     X2_bag <- as.matrix(X2_bag[,-1])
-    m2 <- dim(X2_bag)[2]
     X_bag <- cbind(X1_bag, X2_bag)
     Xinv_bag <- ginv(X_bag)
     B_bag <- Xinv_bag %*% Y_bag
-    B1_bag <- B_bag[1:(m1 + 1),]
-    B2_bag <- B_bag[(m1 + 2):(m1 + 1 + m2),]
-    adjY_bag <- Y_bag - X_bag %*% B_bag
-    res_bag <- Y_bag - X_bag %*% B_bag
-    res_squared_bag <- res_bag^2
 
     
    B_Aggregating <- B_Aggregating+B_bag   
    }
 
-   B_Aggregating <- B_Aggregating/nSim
+   B_Aggregating <- B_Aggregating/nSim 
    res_squared <- (Y - X %*% B_Aggregating)^2
-
-   if (stage2 == TRUE) {
-        Xinv <-  ginv(X)
-        Bdouble_Aggregating <- Xinv %*% res_squared
-   }
-
-   if (stage2 == FALSE) {
-        X1inv <-  ginv(X1)
-        Bdouble_Aggregating <- X1inv %*% res_squared
-   }
-
 
 #####################################
 # data adjustment
 
-    X1 <- cbind(rep(1, n), model.matrix(~-1 + b, b))
-    colnames(covariates) <- paste("col", 1:ncol(covariates),sep = "")
-    fmla <- as.formula(paste("~", paste(colnames(covariates),collapse = "+")))
-    X2 <- model.matrix(fmla, covariates)
-    X2 <- as.matrix(X2[,-1])
-    m2 <- dim(X2)[2]
-    X <- cbind(X1, X2)
-    Xinv <- ginv(X)
-    B <- B_Aggregating
-    B1 <- B[1:(m1 + 1),]
-    B2 <- B[(m1 + 2):(m1 + 1 + m2),]
-    e_1 <- c(1, rep(0, m1 + m2))
-    e_1_matrix <- matrix(rep(e_1, n), ncol = m1 + m2 + 1, byrow = TRUE)
-    adjY <- Y - X %*% B
-    res <- Y - X %*% B
-    res_squared <- res^2
-    if (stage2 == TRUE) {
-        Bdouble <- Bdouble_Aggregating
-        Bdouble1 <- Bdouble[1:(m1 + 1),]
-        Bdouble2 <- Bdouble[(m1 + 2):(m1 + 1 + m2),]
-        genes_var <- Bdouble[1, ]
-        genes_var_matrix <- matrix(rep(genes_var, n),byrow = TRUE,nrow = n)
-        ones <- matrix(rep(1, n * g), nrow = n)
-        delta <- (X %*% Bdouble)/genes_var_matrix
-        delta_inv <- ones/delta
-        delta2 <- ones + ((X2 %*% Bdouble2)/genes_var_matrix)
-        adjYdouble <- delta_inv * adjY
-        adjYdouble <- delta2 * adjYdouble
-        adjYdouble <- adjYdouble + e_1_matrix %*% B + (X2 %*% B2)
-    }
-    if (stage2 == FALSE) {
-        Bdouble <- Bdouble_Aggregating
-        genes_var <- Bdouble[1, ]
-        genes_var_matrix <- matrix(rep(genes_var, m1),byrow = TRUE,nrow = m1)
-        ones <- matrix(rep(1, m1 * g), nrow = m1)
-        ScaleFactors <- ones/sqrt(ones + (Bdouble[2:(m1 + 1),]/genes_var_matrix))
-        adjYdouble <- ScaleFactors[b, ] * adjY
-        adjYdouble <- adjYdouble + e_1_matrix %*% B + (X2 %*% B2)
-    }
+    X1inv <-  ginv(X1)
+    Bdouble_Aggregating <- X1inv %*% res_squared
+
+    B1 <- B_Aggregating[1:m1,]
+    B2 <- B_Aggregating[(m1 + 1):(m1 + m2),]
+    
+    genes_mean <-  apply(X1 %*% B1,2,mean)     
+    genes_mean_matrix <- matrix(rep(genes_mean, n), byrow = TRUE,nrow = n) 
+
+    adjY <- Y - X %*% B_Aggregating
+    res_squared <- adjY^2
+
+    X1D1_hat<-X1%*%Bdouble_Aggregating
+    genes_var <- apply(X1D1_hat,2,mean)
+    genes_var_matrix <- matrix(rep(genes_var, n), byrow = TRUE, nrow =n)
+    ScaleFactors <- sqrt(genes_var_matrix/(X1D1_hat))
+    adjYdouble <- ScaleFactors * adjY
+    adjYdouble <- adjYdouble + genes_mean_matrix  + X2%*%B2
+
     colnames(adjYdouble)<-cnames
     rownames(adjYdouble)<-rnames
     return(adjYdouble)
@@ -268,20 +232,15 @@ if(!is.null(covariates) & partial==FALSE)
     n <- dim(Y)[1]
     g <- dim(Y)[2]
     m1 <- nlevels(b)
-    X1 <- cbind(rep(1, n), model.matrix(~-1 + b, b))
-    colnames(covariates) <- paste("col", 1:ncol(covariates), 
-        sep = "")
-    fmla <- as.formula(paste("~", paste(colnames(covariates), 
-        collapse = "+")))
+    X1 <- model.matrix(~b-1)
+    colnames(covariates) <- paste("col", 1:ncol(covariates),sep = "")
+    fmla <- as.formula(paste("~", paste(colnames(covariates),collapse = "+")))
     X2 <- model.matrix(fmla, covariates)
     X2 <- as.matrix(X2[, -1])
     m2 <- dim(X2)[2]
-    m2double <- m2
-    if(stage2==F){m2double <- 0}
-    
 
-    B_Aggregating_bag<-matrix(rep(0,g*(m1+m2+1)),ncol=g,nrow=m1+m2+1)
-    Bdouble_Aggregating_bag<-matrix(rep(0,g*(m1+m2double+1)),ncol=g,nrow=m1+m2double+1)
+    B_Aggregating_bag<-matrix(rep(0,g*(m1+m2)),ncol=g,nrow=m1+m2)
+    Bdouble_Aggregating_bag<-matrix(rep(0,g*m1),ncol=g,nrow=m1)
 
 #####################################
 # bagging estimators
@@ -293,33 +252,24 @@ for(i in 1:nSim){
     covariates_bag <- covariates[sample_labels,]
     covariates_bag <- as.data.frame(covariates_bag)
            
-    X1_bag <- cbind(rep(1, n), model.matrix(~-1 + b_bag, b_bag))
+    X1_bag <- model.matrix(~b_bag-1)
     colnames(covariates_bag) <- paste("col",1:ncol(covariates_bag),sep = "")
     fmla <- as.formula(paste("~", paste(colnames(covariates_bag),collapse = "+")))
     X2_bag <- model.matrix(fmla, covariates_bag)
     X2_bag <- as.matrix(X2_bag[,-1])
-    m2 <- dim(X2_bag)[2]
     X_bag <- cbind(X1_bag,X2_bag)
     Xinv_bag <- ginv(X_bag)
     B_bag <- Xinv_bag %*% Y_bag
-    B1_bag <- B_bag[1:(m1 + 1),]
-    B2_bag <- B_bag[(m1 + 2):(m1 + 1 + m2),]
     adjY_bag <- Y_bag - X_bag %*% B_bag
-    res_bag <- Y_bag - X_bag %*% B_bag
-    res_squared_bag <- res_bag^2
+    res_squared_bag <- adjY_bag^2
 
-    if (stage2 == TRUE) {
-        Bdouble_bag <- Xinv_bag %*% res_squared_bag
-    }
 
-    if (stage2 == FALSE) {
-        X1inv_bag <- ginv(X1_bag)
-        Bdouble_bag <- X1inv_bag %*% res_squared_bag
-    }
+    X1inv_bag <- ginv(X1_bag)
+    Bdouble_bag <- X1inv_bag %*% res_squared_bag
 
-   B_Aggregating_bag <- B_Aggregating_bag+B_bag 
-   Bdouble_Aggregating_bag <- Bdouble_Aggregating_bag+Bdouble_bag  
 
+    B_Aggregating_bag <- B_Aggregating_bag+B_bag 
+    Bdouble_Aggregating_bag <- Bdouble_Aggregating_bag+Bdouble_bag  
 }
 
    B_Aggregating <- B_Aggregating_bag/nSim
@@ -328,45 +278,22 @@ for(i in 1:nSim){
 #####################################
 # data adjustment
 
-    X1 <- cbind(rep(1, n), model.matrix(~-1 + b, b))
-    colnames(covariates) <- paste("col", 1:ncol(covariates),sep = "")
-    fmla <- as.formula(paste("~", paste(colnames(covariates),collapse = "+")))
-    X2 <- model.matrix(fmla, covariates)
-    X2 <- as.matrix(X2[,-1])
-    m2 <- dim(X2)[2]
     X <- cbind(X1, X2)
     Xinv <- ginv(X)
-    B <- B_Aggregating
-    B1 <- B[1:(m1 + 1),]
-    B2 <- B[(m1 + 2):(m1 + 1 + m2),]
-    e_1 <- c(1, rep(0, m1 + m2))
-    e_1_matrix <- matrix(rep(e_1, n), ncol = m1 + m2 + 1, byrow = TRUE)
-    adjY <- Y - X %*% B
-    res <- Y - X %*% B
-    res_squared <- res^2
-    if (stage2 == TRUE) {
-        Bdouble <- Bdouble_Aggregating
-        Bdouble1 <- Bdouble[1:(m1 + 1),]
-        Bdouble2 <- Bdouble[(m1 + 2):(m1 + 1 + m2),]
-        genes_var <- Bdouble[1,]
-        genes_var_matrix <- matrix(rep(genes_var, n), byrow = TRUE,nrow = n)
-        ones <- matrix(rep(1, n * g), nrow = n)
-        delta <- (X %*% Bdouble)/genes_var_matrix
-        delta_inv <- ones/delta
-        delta2 <- ones + ((X2 %*% Bdouble2)/genes_var_matrix)
-        adjYdouble <- delta_inv * adjY
-        adjYdouble <- delta2 * adjYdouble
-        adjYdouble <- adjYdouble + e_1_matrix %*% B + (X2 %*% B2)
-    }
-    if (stage2 == FALSE) {
-        Bdouble <- Bdouble_Aggregating
-        genes_var <- Bdouble[1,]
-        genes_var_matrix <- matrix(rep(genes_var, m1), byrow = TRUE,nrow = m1)
-        ones <- matrix(rep(1, m1 * g), nrow = m1)
-        ScaleFactors <- ones/sqrt(ones + (Bdouble[2:(m1 + 1),]/genes_var_matrix))
-        adjYdouble <- ScaleFactors[b,] * adjY
-        adjYdouble <- adjYdouble + e_1_matrix %*% B + (X2 %*% B2)
-    }
+    B1 <- B_Aggregating[1:m1,]
+    B2 <- B_Aggregating[(m1 + 1):(m1 + m2),]
+    adjY <- Y - X %*% B_Aggregating
+
+    genes_mean <-  apply(X1 %*% B1,2,mean)     
+    genes_mean_matrix <- matrix(rep(genes_mean, n), byrow = TRUE,nrow = n) 
+
+    X1D1_hat<-X1%*%Bdouble_Aggregating
+    genes_var <- apply(X1D1_hat,2,mean)
+    genes_var_matrix <- matrix(rep(genes_var, n), byrow = TRUE, nrow =n)
+    ScaleFactors <- sqrt(genes_var_matrix/(X1D1_hat))
+    adjYdouble <- ScaleFactors * adjY
+    adjYdouble <- adjYdouble + genes_mean_matrix  + X2%*%B2
+
     colnames(adjYdouble)<-cnames
     rownames(adjYdouble)<-rnames
     return(adjYdouble)    
